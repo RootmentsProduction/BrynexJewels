@@ -2112,7 +2112,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
     itemName = "Jewelry Item",
     sku = "20602",
     price = "1000.00",
-    storeName = "Brynex Jewels",
+    storeName = "Bridesberry",
     isQr = false,
     qty = 1,
     offsetX = 0,
@@ -2208,7 +2208,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
         (tag) => `
       <div class="tag-page">
         <div class="tag-left">
-          <div class="store-title">${tag.storeName || "Brynex Jewels"}</div>
+          <div class="store-title">${tag.storeName || "Bridesberry"}</div>
           <div class="code-wrap">
             ${tag.isQr && tag.imgData ? `<img src="${tag.imgData}" class="qr-img" alt="QR Code" />` : (tag.barcodeSvg || "")}
           </div>
@@ -2455,7 +2455,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
 
     const itemName = (row.item || row.itemData?.itemName || "Jewelry Item").trim();
     const uiItemCode = (row.sku || row.itemData?.sku || row.itemCode || row.designNo || row.dNo || "").trim();
-    const storeName = "Brynex Jewels";
+    const storeName = "Bridesberry";
     const qty = Math.max(1, Math.round(parseFloat(row.quantity) || 1));
     const isQr = forceType ? forceType === "qr" : (String(row.category || "").toLowerCase().includes("qr") || String(row.category || "").toLowerCase() === "others");
     const formattedPrice = mrpNum % 1 === 0 ? mrpNum.toFixed(0) : mrpNum.toFixed(2);
@@ -2497,7 +2497,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
     }
     const itemName = (row.item || row.itemData?.itemName || "Jewelry Item").trim();
     const uiItemCode = (row.sku || row.itemData?.sku || row.itemCode || row.designNo || row.dNo || "").trim();
-    const storeName = "Brynex Jewels";
+    const storeName = "Bridesberry";
     const qty = Math.max(1, Math.round(parseFloat(row.quantity) || 1));
     const isQr = forceType ? forceType === "qr" : (String(row.category || "").toLowerCase().includes("qr") || String(row.category || "").toLowerCase() === "others");
     const formattedPrice = mrpNum % 1 === 0 ? mrpNum.toFixed(0) : mrpNum.toFixed(2);
@@ -2602,7 +2602,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       itemName,
       sku: uiItemCode,
       price: formattedPrice,
-      storeName: "Brynex Jewels",
+      storeName: "Bridesberry",
       isQr,
       qty,
       offsetX: printXOffset,
@@ -2655,7 +2655,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       itemName,
       sku: uiItemCode,
       price: formattedPrice,
-      storeName: "Brynex Jewels",
+      storeName: "Bridesberry",
       isQr,
       qty,
       offsetX: printXOffset,
@@ -2693,7 +2693,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       itemName,
       sku: uiItemCode,
       price: formattedPrice,
-      storeName: "Brynex Jewels",
+      storeName: "Bridesberry",
       isQr,
       qty,
       offsetX: printXOffset,
@@ -5446,7 +5446,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
                     >
                       {/* Left Wing */}
                       <div className="w-[48%] h-full flex flex-col items-center justify-between text-center border-r border-dashed border-slate-200 pr-2 overflow-hidden">
-                        <div className="font-bold text-[8.5px] text-slate-900 truncate max-w-full">Brynex Jewels</div>
+                        <div className="font-bold text-[8.5px] text-slate-900 truncate max-w-full">Bridesberry</div>
                         <div className="h-6 w-full flex items-center justify-center overflow-hidden my-0.5">
                           {modalPreviewImg ? (
                             <img
