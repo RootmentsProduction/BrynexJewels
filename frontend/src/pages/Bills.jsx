@@ -2112,7 +2112,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
     itemName = "Jewelry Item",
     sku = "20602",
     price = "1000.00",
-    storeName = "Bridesberry",
+    storeName = "",
     isQr = false,
     qty = 1,
     offsetX = 0,
@@ -2126,6 +2126,8 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
         : (qty === 1 && unitCode ? unitCode : getNextUniqueProductCode());
       const thisSku = sku || thisUnitCode;
 
+      const storeNameZpl = storeName ? `^FT80,17\n^CI0\n^A0N,17,23^FD${storeName}^FS\n` : "";
+
       if (isQr) {
         zpl += `^XA
 ^SZ2^JMA
@@ -2135,10 +2137,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
 ^LH${offsetX},${offsetY}^LRN
 ^XZ
 ^XA
-^FT80,17
-^CI0
-^A0N,17,23^FD${storeName}^FS
-^FO80,22
+${storeNameZpl}^FO80,22
 ^BQN,2,3
 ^FDQA,${thisUnitCode}^FS
 ^FT80,72
@@ -2160,10 +2159,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
 ^LH${offsetX},${offsetY}^LRN
 ^XZ
 ^XA
-^FT80,17
-^CI0
-^A0N,17,23^FD${storeName}^FS
-^FO81,21
+${storeNameZpl}^FO81,21
 ^BY2^BCN,35,N,N^FD>;${thisUnitCode}^FS
 ^FT80,72
 ^A0N,14,20^FD${thisUnitCode}^FS
@@ -2208,7 +2204,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
         (tag) => `
       <div class="tag-page">
         <div class="tag-left">
-          <div class="store-title">${tag.storeName || "Bridesberry"}</div>
+          ${tag.storeName ? `<div class="store-title">${tag.storeName}</div>` : ""}
           <div class="code-wrap">
             ${tag.isQr && tag.imgData ? `<img src="${tag.imgData}" class="qr-img" alt="QR Code" />` : (tag.barcodeSvg || "")}
           </div>
@@ -2327,6 +2323,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      margin-top: 0.09in;
     }
     .code-wrap svg {
       width: 100%;
@@ -2455,7 +2452,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
 
     const itemName = (row.item || row.itemData?.itemName || "Jewelry Item").trim();
     const uiItemCode = (row.sku || row.itemData?.sku || row.itemCode || row.designNo || row.dNo || "").trim();
-    const storeName = "Bridesberry";
+    const storeName = "";
     const qty = Math.max(1, Math.round(parseFloat(row.quantity) || 1));
     const isQr = forceType ? forceType === "qr" : (String(row.category || "").toLowerCase().includes("qr") || String(row.category || "").toLowerCase() === "others");
     const formattedPrice = mrpNum % 1 === 0 ? mrpNum.toFixed(0) : mrpNum.toFixed(2);
@@ -2497,7 +2494,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
     }
     const itemName = (row.item || row.itemData?.itemName || "Jewelry Item").trim();
     const uiItemCode = (row.sku || row.itemData?.sku || row.itemCode || row.designNo || row.dNo || "").trim();
-    const storeName = "Bridesberry";
+    const storeName = "";
     const qty = Math.max(1, Math.round(parseFloat(row.quantity) || 1));
     const isQr = forceType ? forceType === "qr" : (String(row.category || "").toLowerCase().includes("qr") || String(row.category || "").toLowerCase() === "others");
     const formattedPrice = mrpNum % 1 === 0 ? mrpNum.toFixed(0) : mrpNum.toFixed(2);
@@ -2602,7 +2599,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       itemName,
       sku: uiItemCode,
       price: formattedPrice,
-      storeName: "Bridesberry",
+      storeName: "",
       isQr,
       qty,
       offsetX: printXOffset,
@@ -2655,7 +2652,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       itemName,
       sku: uiItemCode,
       price: formattedPrice,
-      storeName: "Bridesberry",
+      storeName: "",
       isQr,
       qty,
       offsetX: printXOffset,
@@ -2693,7 +2690,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
       itemName,
       sku: uiItemCode,
       price: formattedPrice,
-      storeName: "Bridesberry",
+      storeName: "",
       isQr,
       qty,
       offsetX: printXOffset,
@@ -5445,8 +5442,7 @@ const NewBillForm = ({ billId, isEditMode = false }) => {
                       }}
                     >
                       {/* Left Wing */}
-                      <div className="w-[48%] h-full flex flex-col items-center justify-between text-center border-r border-dashed border-slate-200 pr-2 overflow-hidden">
-                        <div className="font-bold text-[8.5px] text-slate-900 truncate max-w-full">Bridesberry</div>
+                      <div className="w-[48%] h-full flex flex-col items-center justify-center text-center border-r border-dashed border-slate-200 pr-2 overflow-hidden">
                         <div className="h-6 w-full flex items-center justify-center overflow-hidden my-0.5">
                           {modalPreviewImg ? (
                             <img
