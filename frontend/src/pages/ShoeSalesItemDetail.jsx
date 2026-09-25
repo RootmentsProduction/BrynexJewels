@@ -1441,6 +1441,10 @@ const ShoeSalesItemDetail = () => {
                           <span className="text-sm font-semibold text-[#10b981]">{formatCurrency(item.sellingPrice)}</span>
                         </div>
                         <div className="flex justify-between items-center py-2">
+                          <span className="text-sm text-[#64748b]">MRP</span>
+                          <span className="text-sm font-semibold text-[#7C3AED]">{formatCurrency(item.mrp ?? item.sellingPrice)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-2">
                           <span className="text-sm text-[#64748b]">HSN Code</span>
                           <span className="text-sm font-medium text-[#1a1a2e]">{item.hsnCode || "—"}</span>
                         </div>

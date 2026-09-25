@@ -1333,6 +1333,10 @@ const ShoeSalesItemDetailFromGroup = () => {
                           <span className="text-sm font-bold text-[#10B981] font-mono">₹{typeof item.sellingPrice === 'number' ? item.sellingPrice.toFixed(2) : (item.sellingPrice || "0.00")}</span>
                         </div>
                         <div className="flex justify-between items-center py-1.5 border-b border-[#F3F4F6]">
+                          <span className="text-xs font-medium text-[#6B7280]">MRP</span>
+                          <span className="text-sm font-bold text-[#7C3AED] font-mono">₹{parseFloat(item.mrp) > 0 ? parseFloat(item.mrp).toFixed(2) : (parseFloat(item.sellingPrice) || 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-1.5 border-b border-[#F3F4F6]">
                           <span className="text-xs font-medium text-[#6B7280]">HSN Code</span>
                           <span className="text-xs font-bold text-[#111827] font-mono">{item.hsnCode || "—"}</span>
                         </div>
