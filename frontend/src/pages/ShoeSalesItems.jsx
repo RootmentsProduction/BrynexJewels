@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { SlidersHorizontal, Plus, ChevronLeft, ChevronRight, Trash2, AlertTriangle, Search, FolderPlus, Layers, Check, CheckCircle2, X } from "lucide-react";
+import { SlidersHorizontal, Plus, ChevronLeft, ChevronRight, Trash2, AlertTriangle, Search, FolderPlus, Layers, Check, CheckCircle2, X, Barcode, Copy, Pencil, Save, Scissors } from "lucide-react";
 import Head from "../components/Head";
 import Header from "../components/Header";
 import baseUrl from "../api/api";
@@ -484,85 +484,85 @@ const ShoeSalesItems = () => {
 
                         return (
                           <tr key={item._id} className="h-[60px] hover:bg-gray-50/80 transition-colors">
-                            <td className="py-2.5 px-4 text-center">
-                              <div className="flex items-center justify-center gap-1">
-                                <input
-                                  type="checkbox"
-                                  className="h-4 w-4 rounded-none border-gray-300 text-[#9B48D7] focus:ring-[#9B48D7] cursor-pointer"
-                                  checked={selectedItems.has(item._id)}
-                                  onChange={(e) => handleCheckboxChange(item._id, e.target.checked)}
-                                />
-                                {isAdmin && selectedItems.has(item._id) && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSingleDelete(item);
-                                    }}
-                                    className="p-1 rounded-none hover:bg-red-50 text-red-600 transition-colors cursor-pointer"
-                                    title="Delete this item"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
+                              <td className="py-2.5 px-4 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded-none border-gray-300 text-[#9B48D7] focus:ring-[#9B48D7] cursor-pointer"
+                                    checked={selectedItems.has(item._id)}
+                                    onChange={(e) => handleCheckboxChange(item._id, e.target.checked)}
+                                  />
+                                  {isAdmin && selectedItems.has(item._id) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSingleDelete(item);
+                                      }}
+                                      className="p-1 rounded-none hover:bg-red-50 text-red-600 transition-colors cursor-pointer"
+                                      title="Delete this item"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
 
-                            <td className="py-2.5 px-4">
-                              <Link
-                                to={itemPath}
-                                className="flex items-center gap-3 group cursor-pointer"
-                              >
-                                {(() => {
-                                  const itemImg = item.image || (item.images && item.images[0]?.data) || (item.images && typeof item.images[0] === 'string' && item.images[0]) || "";
-                                  if (itemImg) {
+                              <td className="py-2.5 px-4">
+                                <Link
+                                  to={itemPath}
+                                  className="flex items-center gap-3 group cursor-pointer"
+                                >
+                                  {(() => {
+                                    const itemImg = item.image || (item.images && item.images[0]?.data) || (item.images && typeof item.images[0] === 'string' && item.images[0]) || "";
+                                    if (itemImg) {
+                                      return (
+                                        <div className="w-10 h-10 rounded-none bg-white border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden p-0.5 shadow-sm">
+                                          <img
+                                            src={itemImg}
+                                            alt={item.itemName || item.name}
+                                            className="w-full h-full object-contain"
+                                          />
+                                        </div>
+                                      );
+                                    }
                                     return (
-                                      <div className="w-10 h-10 rounded-none bg-white border border-gray-200 flex-shrink-0 flex items-center justify-center overflow-hidden p-0.5 shadow-sm">
-                                        <img
-                                          src={itemImg}
-                                          alt={item.itemName || item.name}
-                                          className="w-full h-full object-contain"
-                                        />
+                                      <div className="w-10 h-10 rounded-none bg-[#e2e8f0] flex-shrink-0 flex items-center justify-center text-gray-700 font-bold text-sm group-hover:bg-[#f1e6fa] group-hover:text-[#9B48D7] transition-colors uppercase">
+                                        {(item.itemName || item.name || "?")[0]}
                                       </div>
                                     );
-                                  }
-                                  return (
-                                    <div className="w-10 h-10 rounded-none bg-[#e2e8f0] flex-shrink-0 flex items-center justify-center text-gray-700 font-bold text-sm group-hover:bg-[#f1e6fa] group-hover:text-[#9B48D7] transition-colors uppercase">
-                                      {(item.itemName || item.name || "?")[0]}
+                                  })()}
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-semibold text-gray-900 group-hover:text-[#9B48D7] transition-colors">
+                                        {item.itemName || item.name}
+                                      </p>
+                                      {item.isFromGroup && (
+                                        <span className="inline-flex items-center rounded-none bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold text-[#9B48D7] border border-purple-200">
+                                          GROUP
+                                        </span>
+                                      )}
                                     </div>
-                                  );
-                                })()}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-sm font-semibold text-gray-900 group-hover:text-[#9B48D7] transition-colors">
-                                      {item.itemName || item.name}
+                                    <p className="text-xs text-gray-400">
+                                      {item.brand || item.itemGroupName || "Unbranded"}
                                     </p>
-                                    {item.isFromGroup && (
-                                      <span className="inline-flex items-center rounded-none bg-purple-50 px-1.5 py-0.5 text-[10px] font-bold text-[#9B48D7] border border-purple-200">
-                                        GROUP
-                                      </span>
-                                    )}
                                   </div>
-                                  <p className="text-xs text-gray-400">
-                                    {item.brand || item.itemGroupName || "Unbranded"}
-                                  </p>
-                                </div>
-                              </Link>
-                            </td>
+                                </Link>
+                              </td>
 
-                            <td className="py-2.5 px-4 text-right text-sm text-gray-500">
-                              {item.sku || "-"}
-                            </td>
+                              <td className="py-2.5 px-4 text-right text-sm font-mono text-gray-800">
+                                {item.sku || "-"}
+                              </td>
 
-                            <td className="py-2.5 px-4 text-right text-sm font-semibold text-gray-800">
-                              {stockVal}
-                            </td>
+                              <td className="py-2.5 px-4 text-right text-sm font-semibold text-gray-800">
+                                {stockVal}
+                              </td>
 
-                            <td className="py-2.5 px-4 text-right text-sm text-gray-500">
-                              {item.reorderPoint || "-"}
-                            </td>
-                          </tr>
-                        );
-                      })
+                              <td className="py-2.5 px-4 text-right text-sm text-gray-500">
+                                {item.reorderPoint || "-"}
+                              </td>
+                            </tr>
+                          );
+                        })
                     )}
               </tbody>
             </table>

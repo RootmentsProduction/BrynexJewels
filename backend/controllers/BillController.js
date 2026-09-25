@@ -1218,82 +1218,68 @@ export const getBillById = async (req, res) => {
     }
 
     const billObj = bill.toObject();
+    let hasUpdates = false;
+
     if (billObj.items && Array.isArray(billObj.items)) {
       for (let i = 0; i < billObj.items.length; i++) {
         const item = billObj.items[i];
         const itemId = item.itemId?.toString();
         const itemGroupId = item.itemGroupId?.toString();
+        let targetSku = item.sku || item.itemSku || "";
 
         let resolved = false;
 
-        // Check group items first if itemGroupId is set or search groups
+        // 1. Check group items first if itemGroupId is set
         if (itemGroupId) {
           const group = await ItemGroup.findById(itemGroupId);
           if (group && Array.isArray(group.items)) {
             const found = group.items.find(gi => 
               (itemId && (gi._id?.toString() === itemId || gi.id?.toString() === itemId)) ||
-              (item.itemSku && gi.sku && gi.sku.trim().toLowerCase() === item.itemSku.trim().toLowerCase()) ||
-              (gi.name && item.itemName && gi.name.trim().toLowerCase() === item.itemName.trim().toLowerCase())
+              (targetSku && gi.sku && gi.sku.trim().toLowerCase() === targetSku.trim().toLowerCase())
             );
             if (found) {
-              if (found.sku) {
-                billObj.items[i].sku = found.sku;
-                billObj.items[i].itemSku = found.sku;
+              if (found.sku) targetSku = found.sku;
+              if (found.name && !billObj.items[i].itemName) billObj.items[i].itemName = found.name;
+              if (found.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = found.hsnCode;
+              if (found.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = found.itemCode;
+              if (found.returnable !== undefined && found.returnable !== null && billObj.items[i].returnable === undefined) {
+                billObj.items[i].returnable = found.returnable;
               }
-              if (found.name) billObj.items[i].itemName = found.name;
-              if (found.hsnCode) billObj.items[i].hsnCode = found.hsnCode;
-              if (found.itemCode) billObj.items[i].itemCode = found.itemCode;
-              if (found.returnable !== undefined && found.returnable !== null) billObj.items[i].returnable = found.returnable;
               resolved = true;
             }
           }
         }
 
-        if (!resolved && (itemId || item.itemSku || item.itemName)) {
-          // Check all groups
-          const allGroups = await ItemGroup.find({
-            $or: [
-              ...(itemId && mongoose.Types.ObjectId.isValid(itemId) ? [{ "items._id": itemId }] : []),
-              ...(item.itemSku ? [{ "items.sku": { $regex: `^${item.itemSku}$`, $options: 'i' } }] : []),
-              ...(item.itemName ? [{ "items.name": { $regex: `^${item.itemName}$`, $options: 'i' } }] : [])
-            ]
-          });
-          for (const group of allGroups) {
-            const found = (group.items || []).find(gi =>
-              (itemId && (gi._id?.toString() === itemId || gi.id?.toString() === itemId)) ||
-              (item.itemSku && gi.sku && gi.sku.trim().toLowerCase() === item.itemSku.trim().toLowerCase()) ||
-              (gi.name && item.itemName && gi.name.trim().toLowerCase() === item.itemName.trim().toLowerCase())
-            );
-            if (found) {
-              if (found.sku) {
-                billObj.items[i].sku = found.sku;
-                billObj.items[i].itemSku = found.sku;
-              }
-              if (found.name) billObj.items[i].itemName = found.name;
-              if (found.hsnCode) billObj.items[i].hsnCode = found.hsnCode;
-              if (found.itemCode) billObj.items[i].itemCode = found.itemCode;
-              if (found.returnable !== undefined && found.returnable !== null) billObj.items[i].returnable = found.returnable;
-              resolved = true;
-              break;
-            }
-          }
-        }
-
-        // Check standalone ShoeItem
+        // 2. Check standalone ShoeItem
         if (!resolved && itemId && itemId !== "null" && mongoose.Types.ObjectId.isValid(itemId)) {
           const shoeItem = await ShoeItem.findById(itemId);
           if (shoeItem) {
-            if (shoeItem.sku) {
-              billObj.items[i].sku = shoeItem.sku;
-              billObj.items[i].itemSku = shoeItem.sku;
+            if (shoeItem.sku) targetSku = shoeItem.sku;
+            if (shoeItem.itemName && !billObj.items[i].itemName) billObj.items[i].itemName = shoeItem.itemName;
+            if (shoeItem.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = shoeItem.hsnCode;
+            if (shoeItem.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = shoeItem.itemCode;
+            if (shoeItem.returnable !== undefined && billObj.items[i].returnable === undefined) {
+              billObj.items[i].returnable = shoeItem.returnable;
             }
-            if (shoeItem.itemName) billObj.items[i].itemName = shoeItem.itemName;
-            if (shoeItem.hsnCode) billObj.items[i].hsnCode = shoeItem.hsnCode;
-            if (shoeItem.itemCode) billObj.items[i].itemCode = shoeItem.itemCode;
-            if (shoeItem.returnable !== undefined) billObj.items[i].returnable = shoeItem.returnable;
+          }
+        }
+
+        if (targetSku) {
+          if (billObj.items[i].sku !== targetSku || billObj.items[i].itemSku !== targetSku) {
+            billObj.items[i].sku = targetSku;
+            billObj.items[i].itemSku = targetSku;
+            if (bill.items && bill.items[i]) {
+              bill.items[i].sku = targetSku;
+              bill.items[i].itemSku = targetSku;
+              hasUpdates = true;
+            }
           }
         }
       }
+    }
+
+    if (hasUpdates) {
+      await bill.save().catch(err => console.warn("Could not sync bill SKUs in getBillById:", err));
     }
     
     res.status(200).json(billObj);
