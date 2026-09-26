@@ -718,7 +718,10 @@ const ItemDropdown = ({
     return warehouseStock ? (typeof warehouseStock.stockOnHand === "number" ? warehouseStock.stockOnHand : 0) : 0;
   };
 
-  const dropdownPortal = isOpen ? (
+  // Toggle to hide dropdown popup menu while preserving code
+  const SHOW_ITEM_DROPDOWN = false;
+
+  const dropdownPortal = (isOpen && SHOW_ITEM_DROPDOWN) ? (
     <div
       ref={dropdownRef}
       style={{
@@ -774,18 +777,6 @@ const ItemDropdown = ({
                 </div>
               );
             })
-          )}
-          {onOpenGroupModal && (
-            <div
-              onClick={() => {
-                onOpenGroupModal();
-                setIsOpen(false);
-              }}
-              className="flex items-center gap-1.5 px-4 py-2.5 text-xs text-purple-700 hover:bg-purple-50 cursor-pointer transition-colors border-t border-gray-100 font-semibold"
-            >
-              <Layers size={14} className="text-purple-600" />
-              <span>Group Item</span>
-            </div>
           )}
           <div
             onClick={() => {
@@ -850,7 +841,7 @@ const ItemDropdown = ({
           </div>
         </div>
       </div>
-      {typeof document !== "undefined" && document.body && createPortal(dropdownPortal, document.body)}
+      {typeof document !== "undefined" && document.body && dropdownPortal && createPortal(dropdownPortal, document.body)}
     </>
   );
 };
@@ -4106,6 +4097,8 @@ ${storeNameZpl}^FO81,21
                     String(row.mrp).trim() !== "" &&
                     !isNaN(mrpNum) &&
                     mrpNum > 0;
+                  const pieceCodes = getPieceCodesForRow(row);
+                  const qtyNum = Math.max(1, Math.round(parseFloat(row.quantity) || 1));
 
                   return (
                     <tr key={row.id} className="hover:bg-gray-50/60 transition-colors">
@@ -4174,11 +4167,38 @@ ${storeNameZpl}^FO81,21
                               onOpenGroupModal={() => handleOpenGroupItemModal(row)}
                               warehouse={warehouse}
                             />
-                            {row.sku && (
-                              <div className="text-[11px] font-semibold text-purple-700 bg-purple-50/90 border border-purple-200/80 px-2 py-0.5 mt-1 inline-flex items-center gap-1.5 shadow-2xs">
-                                <Barcode size={12} className="text-purple-600" />
-                                <span className="text-gray-500 font-normal">SKU:</span>
-                                <span className="font-mono tracking-wide">{row.sku}</span>
+                            {pieceCodes.length > 0 && (
+                              <div className="mt-1 space-y-1">
+                                {pieceCodes.length === 1 ? (
+                                  <div className="text-[11px] font-semibold text-purple-700 bg-purple-50/90 border border-purple-200/80 px-2 py-0.5 inline-flex items-center gap-1.5 shadow-2xs">
+                                    <Barcode size={12} className="text-purple-600" />
+                                    <span className="text-gray-500 font-normal">SKU:</span>
+                                    <span className="font-mono tracking-wide">{pieceCodes[0]}</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {pieceCodes.map((code, pIdx) => (
+                                      <div
+                                        key={`${row.id}-sku-${pIdx}`}
+                                        className="text-[11px] font-semibold text-purple-700 bg-purple-50/90 border border-purple-200/80 px-2 py-0.5 inline-flex items-center gap-1 shadow-2xs"
+                                        title={`Piece ${pIdx + 1} of ${pieceCodes.length} (SKU: ${code})`}
+                                      >
+                                        <Barcode size={11} className="text-purple-600" />
+                                        <span className="text-gray-400 font-normal text-[10px]">#{pIdx + 1}:</span>
+                                        <span className="font-mono tracking-wide">{code}</span>
+                                      </div>
+                                    ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSplitRow(row.id)}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-none cursor-pointer transition-colors shadow-2xs"
+                                      title={`Split this Qty ${pieceCodes.length} item into ${pieceCodes.length} separate rows of Qty 1 each`}
+                                    >
+                                      <Scissors size={11} className="text-blue-600" />
+                                      <span>Split into {pieceCodes.length} Rows</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             )}
                             {(row.pendingGroup || row.groupName || row.itemData?.groupName) && (
@@ -4403,6 +4423,16 @@ ${storeNameZpl}^FO81,21
                       {/* Actions */}
                       <td className="px-3 py-3 align-top pt-3.5">
                         <div className="flex items-center justify-center gap-1.5">
+                          {qtyNum > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleSplitRow(row.id)}
+                              className="w-7 h-7 rounded-none bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors shadow-2xs"
+                              title={`Split this Qty ${qtyNum} item into ${qtyNum} separate rows`}
+                            >
+                              <Scissors size={14} />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleOpenAddToGroup(row)}
