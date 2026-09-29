@@ -581,6 +581,13 @@ export const getItemGroups = async (req, res) => {
           }, 0);
           return sum + warehouseTotal;
         }
+        if (!isViewingSpecificStore) {
+          const itemStock = typeof item.stock === 'number' ? item.stock : (parseFloat(item.stock) || 0);
+          return sum + itemStock;
+        }
+        return sum;
+      }, 0);
+
       // Count only items that currently have stock > 0
       const inStockItems = (isViewingSpecificStore ? relevantItems : itemsArray).filter(item => {
         if (item.warehouseStocks && Array.isArray(item.warehouseStocks) && item.warehouseStocks.length > 0) {

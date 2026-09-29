@@ -999,9 +999,9 @@ export const createBill = async (req, res) => {
       })));
     }
     
-    if ((billData.status === "open" || billData.status === "completed" || billData.status === "draft") && hasItemsWithQuantity) {
+    if ((billData.status === "open" || billData.status === "completed") && hasItemsWithQuantity) {
       const sourceType = billData.sourceType || "direct";
-      console.log(`   ✅ Status is "${billData.status}" and items with quantity > 0 found, proceeding...`);
+      console.log(`   ✅ Status is "${billData.status}" and items with quantity > 0 found, proceeding with stock addition...`);
       console.log(`   Source type: "${sourceType}"`);
       console.log(`   Final Total: ${billData.finalTotal || 0} (may be 0, but items have quantity)`);
       
