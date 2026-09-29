@@ -651,6 +651,15 @@ export const getShoeItems = async (req, res) => {
         return itemName.includes(searchLower) || sku.includes(searchLower);
       });
     }
+
+    // Filter out items with 0 or negative stock if hideZeroStock is true
+    const hideZeroStock = req.query.hideZeroStock === "true" || req.query.inStockOnly === "true";
+    if (hideZeroStock) {
+      allItems = allItems.filter(item => {
+        const stock = Number(item.stockOnHand ?? item.stock ?? 0);
+        return stock > 0;
+      });
+    }
     
     // Sort by creation date (newest first)
     allItems.sort((a, b) => {

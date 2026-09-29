@@ -236,9 +236,25 @@ const ShoeSalesItemGroupDetail = () => {
     );
   }
 
-  // Get items from the item group (saved items from database) - filter out inactive items
+  // Helper to calculate stock for an item
+  const getItemStockOnHand = (item) => {
+    if (item.warehouseStocks && Array.isArray(item.warehouseStocks) && item.warehouseStocks.length > 0) {
+      if (userWarehouse && userWarehouse !== "Warehouse") {
+        const ws = item.warehouseStocks.find(w => (w.warehouse || "").toLowerCase().includes(userWarehouse.toLowerCase()));
+        return ws ? (parseFloat(ws.stockOnHand) || 0) : 0;
+      }
+      return item.warehouseStocks.reduce((total, ws) => total + (parseFloat(ws.stockOnHand) || 0), 0);
+    } else if (typeof item.stock === 'number') {
+      return item.stock;
+    } else if (item.stock) {
+      return parseFloat(item.stock) || 0;
+    }
+    return 0;
+  };
+
+  // Get items from the item group (saved items from database) - filter out inactive and 0-stock items
   const allItems = itemGroup.items && Array.isArray(itemGroup.items) ? itemGroup.items : [];
-  const items = allItems.filter(item => item.isActive !== false);
+  const items = allItems.filter(item => item.isActive !== false && getItemStockOnHand(item) > 0);
 
   // Calculate stock totals from items - sum of all item stocks
   // Example: If 9 items each have 10 stock, total = 90
@@ -292,9 +308,10 @@ const ShoeSalesItemGroupDetail = () => {
   const getOpeningStockDistribution = () => {
     const distribution = [];
     
+    const activeAllItems = allItems.filter(item => item.isActive !== false);
     // Get warehouses that have stock data from items
     const warehousesWithStock = new Set();
-    items.forEach(item => {
+    activeAllItems.forEach(item => {
       if (item.warehouseStocks && Array.isArray(item.warehouseStocks)) {
         item.warehouseStocks.forEach(ws => {
           if (ws.warehouse) {
@@ -323,7 +340,7 @@ const ShoeSalesItemGroupDetail = () => {
     });
     
     // Process each item
-    items.forEach(item => {
+    activeAllItems.forEach(item => {
       const itemName = item.name || "Unnamed Item";
       // For group items, create a SKU from the item name or use existing SKU
       let itemSku = "N/A";

@@ -581,14 +581,21 @@ export const getItemGroups = async (req, res) => {
           }, 0);
           return sum + warehouseTotal;
         }
-        if (!isViewingSpecificStore) {
-          const itemStock = typeof item.stock === 'number' ? item.stock : (parseFloat(item.stock) || 0);
-          return sum + itemStock;
+      // Count only items that currently have stock > 0
+      const inStockItems = (isViewingSpecificStore ? relevantItems : itemsArray).filter(item => {
+        if (item.warehouseStocks && Array.isArray(item.warehouseStocks) && item.warehouseStocks.length > 0) {
+          if (isViewingSpecificStore && targetStoreWarehouse) {
+            const ws = item.warehouseStocks.find(w => matchesWarehouse(w.warehouse, targetStoreWarehouse));
+            return ws ? (parseFloat(ws.stockOnHand) || 0) > 0 : false;
+          }
+          const totalWs = item.warehouseStocks.reduce((wsSum, ws) => wsSum + (parseFloat(ws.stockOnHand || 0)), 0);
+          return totalWs > 0;
         }
-        return sum;
-      }, 0);
-      
-      const itemCount = isViewingSpecificStore ? relevantItems.length : itemsArray.length;
+        const itemStock = typeof item.stock === 'number' ? item.stock : (parseFloat(item.stock) || 0);
+        return itemStock > 0;
+      });
+
+      const itemCount = inStockItems.length;
       
       return {
         _id: groupObj._id,
