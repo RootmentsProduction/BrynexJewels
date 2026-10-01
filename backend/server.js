@@ -56,7 +56,7 @@ const allowedOrigins = [
   "https://rootfin-testenv-ebb5.onrender.com",
   "https://api.rootments.live",
   "https://rootfin-production.vercel.app",
-  "https://rootfin.brynex.com",
+  "https://rootfinjewels.brynex.com",
   "https://rootfin-brynex-testenv.vercel.app",
   "https://brynex-jewels-bnwf.vercel.app"
 ];

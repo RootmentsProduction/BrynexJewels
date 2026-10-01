@@ -108,7 +108,6 @@ const ShoeSalesItems = () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
-        hideZeroStock: "true",
       });
       
       if (searchTerm && searchTerm.trim()) {
@@ -129,27 +128,14 @@ const ShoeSalesItems = () => {
       }
       const data = await response.json();
 
-      const getItemStock = (item) => {
-        if (typeof item.stockOnHand === "number") return item.stockOnHand;
-        if (Array.isArray(item.warehouseStocks) && item.warehouseStocks.length > 0) {
-          if (userWarehouse && userWarehouse !== "Warehouse") {
-            const ws = item.warehouseStocks.find(w => (w.warehouse || "").toLowerCase().includes(userWarehouse.toLowerCase()));
-            return ws ? (Number(ws.stockOnHand) || 0) : 0;
-          }
-          return item.warehouseStocks.reduce((sum, ws) => sum + (Number(ws.stockOnHand) || 0), 0);
-        }
-        if (typeof item.stock === "number") return item.stock;
-        return 0;
-      };
-
       if (Array.isArray(data)) {
-        const activeOnly = data.filter((i) => i?.isActive !== false && String(i?.isActive).toLowerCase() !== "false" && getItemStock(i) > 0);
+        const activeOnly = data.filter((i) => i?.isActive !== false && String(i?.isActive).toLowerCase() !== "false");
         setItems(activeOnly);
         setTotalItems(activeOnly.length);
         setTotalPages(Math.ceil(activeOnly.length / itemsPerPage));
       } else {
         const list = Array.isArray(data.items) ? data.items : [];
-        const activeOnly = list.filter((i) => i?.isActive !== false && String(i?.isActive).toLowerCase() !== "false" && getItemStock(i) > 0);
+        const activeOnly = list.filter((i) => i?.isActive !== false && String(i?.isActive).toLowerCase() !== "false");
         setItems(activeOnly);
         if (data.pagination) {
           setTotalItems(data.pagination.totalItems || 0);
