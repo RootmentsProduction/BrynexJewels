@@ -3312,30 +3312,32 @@ ${storeNameZpl}^FO81,21
         }
       }
 
-      // 2. Identify new groups to create (deduplicated by name)
+      // 2. Identify new groups to create (deduplicated by name) - only when not draft
       const newGroupsMap = {}; // groupName -> createdGroupId
-      for (const row of validRows) {
-        if (row.pendingGroup?.option === "new" && row.pendingGroup?.name) {
-          const gName = row.pendingGroup.name.trim();
-          if (!newGroupsMap[gName]) {
-            try {
-              const createRes = await fetch(`${API_URL}/api/shoe-sales/item-groups`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  name: gName,
-                  unit: row.pendingGroup.unit || "PCS",
-                  itemType: "goods",
-                  userWarehouse: targetWarehouse,
-                  items: [],
-                }),
-              });
-              if (createRes.ok) {
-                const createdGroup = await createRes.json();
-                newGroupsMap[gName] = createdGroup._id || createdGroup.id;
+      if (status !== "draft") {
+        for (const row of validRows) {
+          if (row.pendingGroup?.option === "new" && row.pendingGroup?.name) {
+            const gName = row.pendingGroup.name.trim();
+            if (!newGroupsMap[gName]) {
+              try {
+                const createRes = await fetch(`${API_URL}/api/shoe-sales/item-groups`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: gName,
+                    unit: row.pendingGroup.unit || "PCS",
+                    itemType: "goods",
+                    userWarehouse: targetWarehouse,
+                    items: [],
+                  }),
+                });
+                if (createRes.ok) {
+                  const createdGroup = await createRes.json();
+                  newGroupsMap[gName] = createdGroup._id || createdGroup.id;
+                }
+              } catch (err) {
+                console.warn("Could not create group on save:", err);
               }
-            } catch (err) {
-              console.warn("Could not create group on save:", err);
             }
           }
         }
