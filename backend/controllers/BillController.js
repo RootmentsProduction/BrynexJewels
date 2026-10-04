@@ -937,8 +937,8 @@ export const createBill = async (req, res) => {
     
     const bill = await Bill.create(billData);
 
-    // Sync item pricing back to ItemGroup and ShoeItem
-    if (billData.items && Array.isArray(billData.items)) {
+    // Sync item pricing back to ItemGroup and ShoeItem (only when not draft)
+    if (billData.status !== "draft" && billData.items && Array.isArray(billData.items)) {
       await syncItemPricesFromBill(billData.items);
     }
     
@@ -976,7 +976,7 @@ export const createBill = async (req, res) => {
       });
     }
     
-    // If status is "open", process the bill (add stock and update vendor balance)
+    // If status is "open" or "completed", process the bill (add stock and update vendor balance)
     // IMPORTANT: If bill is from Purchase Receive, stock was already added at Receive stage
     // So we should NOT add stock again - only update vendor balance
     console.log(`\n📋 BILL CREATION STOCK CHECK:`);
@@ -999,7 +999,7 @@ export const createBill = async (req, res) => {
       })));
     }
     
-    if ((billData.status === "open" || billData.status === "completed" || billData.status === "draft") && hasItemsWithQuantity) {
+    if ((billData.status === "open" || billData.status === "completed") && hasItemsWithQuantity) {
       const sourceType = billData.sourceType || "direct";
       console.log(`   ✅ Status is "${billData.status}" and items with quantity > 0 found, proceeding...`);
       console.log(`   Source type: "${sourceType}"`);
@@ -1670,8 +1670,8 @@ export const updateBill = async (req, res) => {
       return res.status(404).json({ message: "Bill not found" });
     }
 
-    // Sync item pricing back to ItemGroup and ShoeItem
-    if (billData.items && Array.isArray(billData.items)) {
+    // Sync item pricing back to ItemGroup and ShoeItem (only when not draft)
+    if (newStatus !== "draft" && billData.items && Array.isArray(billData.items)) {
       await syncItemPricesFromBill(billData.items);
     }
     

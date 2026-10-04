@@ -3430,93 +3430,95 @@ ${storeNameZpl}^FO81,21
         let savedGroup = null;
         let currentGroupItems = [];
 
-        try {
-          const groupFetchRes = await fetch(`${API_URL}/api/shoe-sales/item-groups/${groupId}`);
-          let existingGroup = null;
-          if (groupFetchRes.ok) {
-            existingGroup = await groupFetchRes.json();
-          }
+        if (status !== "draft") {
+          try {
+            const groupFetchRes = await fetch(`${API_URL}/api/shoe-sales/item-groups/${groupId}`);
+            let existingGroup = null;
+            if (groupFetchRes.ok) {
+              existingGroup = await groupFetchRes.json();
+            }
 
-          currentGroupItems = Array.isArray(existingGroup?.items)
-            ? [...existingGroup.items]
-            : (Array.isArray(existingGroup?.itemsList) ? [...existingGroup.itemsList] : []);
+            currentGroupItems = Array.isArray(existingGroup?.items)
+              ? [...existingGroup.items]
+              : (Array.isArray(existingGroup?.itemsList) ? [...existingGroup.itemsList] : []);
 
-          for (const itemEntry of itemsToAdd) {
-            const { finalItemName, rowCost, rowSelling, rowSku, rowItemCode, rowHsn, rowSize } = itemEntry;
-            const rowItemId = (itemEntry.row.itemId || itemEntry.row.itemData?._id || "").toString();
+            for (const itemEntry of itemsToAdd) {
+              const { finalItemName, rowCost, rowSelling, rowSku, rowItemCode, rowHsn, rowSize } = itemEntry;
+              const rowItemId = (itemEntry.row.itemId || itemEntry.row.itemData?._id || "").toString();
 
-            // Check if item already exists in this group by Item ID or exact piece SKU
-            let existingItemIdx = currentGroupItems.findIndex((gi) => {
-              const giId = (gi._id?.toString() || gi.id?.toString() || "");
-              if (rowItemId && giId && rowItemId === giId && (!rowSku || gi.sku === rowSku)) {
-                return true;
+              // Check if item already exists in this group by Item ID or exact piece SKU
+              let existingItemIdx = currentGroupItems.findIndex((gi) => {
+                const giId = (gi._id?.toString() || gi.id?.toString() || "");
+                if (rowItemId && giId && rowItemId === giId && (!rowSku || gi.sku === rowSku)) {
+                  return true;
+                }
+                if (rowSku && gi.sku) {
+                  return gi.sku.trim().toUpperCase() === rowSku.trim().toUpperCase();
+                }
+                return false;
+              });
+
+              if (existingItemIdx !== -1) {
+                // Update metadata on existing group item
+                const targetItem = { ...currentGroupItems[existingItemIdx] };
+                targetItem.costPrice = rowCost || targetItem.costPrice || 0;
+                targetItem.sellingPrice = rowSelling || targetItem.sellingPrice || 0;
+                targetItem.mrp = parseFloat(itemEntry.row.mrp) || rowSelling || targetItem.mrp || 0;
+                targetItem.returnable = itemEntry.row.returnable !== undefined ? Boolean(itemEntry.row.returnable) : false;
+                if (rowHsn) targetItem.hsnCode = rowHsn;
+                if (rowItemCode) targetItem.itemCode = rowItemCode;
+                if (itemEntry.row.image) targetItem.image = itemEntry.row.image;
+                currentGroupItems[existingItemIdx] = targetItem;
+              } else {
+                // Append new individual item piece to group
+                const newItem = {
+                  name: finalItemName,
+                  itemName: finalItemName,
+                  sku: rowSku || `${existingGroup?.sku || "SKU"}-${currentGroupItems.length + 1}`,
+                  itemCode: rowItemCode,
+                  hsnCode: rowHsn,
+                  size: rowSize,
+                  costPrice: rowCost,
+                  sellingPrice: rowSelling,
+                  mrp: parseFloat(itemEntry.row.mrp) || rowSelling || 0,
+                  returnable: itemEntry.row.returnable !== undefined ? Boolean(itemEntry.row.returnable) : false,
+                  stock: 0,
+                  isActive: true,
+                  image: itemEntry.row.image || "",
+                  warehouseStocks: [{
+                    warehouse: targetWarehouse,
+                    openingStock: 0,
+                    openingStockValue: 0,
+                    stockOnHand: 0,
+                    committedStock: 0,
+                    availableForSale: 0,
+                    physicalOpeningStock: 0,
+                    physicalStockOnHand: 0,
+                    physicalCommittedStock: 0,
+                    physicalAvailableForSale: 0,
+                  }],
+                };
+                currentGroupItems.push(newItem);
               }
-              if (rowSku && gi.sku) {
-                return gi.sku.trim().toUpperCase() === rowSku.trim().toUpperCase();
-              }
-              return false;
+            }
+
+            // Save the full updated item group once
+            const updateRes = await fetch(`${API_URL}/api/shoe-sales/item-groups/${groupId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                items: currentGroupItems,
+              }),
             });
 
-            if (existingItemIdx !== -1) {
-              // Update metadata on existing group item
-              const targetItem = { ...currentGroupItems[existingItemIdx] };
-              targetItem.costPrice = rowCost || targetItem.costPrice || 0;
-              targetItem.sellingPrice = rowSelling || targetItem.sellingPrice || 0;
-              targetItem.mrp = parseFloat(itemEntry.row.mrp) || rowSelling || targetItem.mrp || 0;
-              targetItem.returnable = itemEntry.row.returnable !== undefined ? Boolean(itemEntry.row.returnable) : false;
-              if (rowHsn) targetItem.hsnCode = rowHsn;
-              if (rowItemCode) targetItem.itemCode = rowItemCode;
-              if (itemEntry.row.image) targetItem.image = itemEntry.row.image;
-              currentGroupItems[existingItemIdx] = targetItem;
+            if (updateRes.ok) {
+              savedGroup = await updateRes.json();
             } else {
-              // Append new individual item piece to group
-              const newItem = {
-                name: finalItemName,
-                itemName: finalItemName,
-                sku: rowSku || `${existingGroup?.sku || "SKU"}-${currentGroupItems.length + 1}`,
-                itemCode: rowItemCode,
-                hsnCode: rowHsn,
-                size: rowSize,
-                costPrice: rowCost,
-                sellingPrice: rowSelling,
-                mrp: parseFloat(itemEntry.row.mrp) || rowSelling || 0,
-                returnable: itemEntry.row.returnable !== undefined ? Boolean(itemEntry.row.returnable) : false,
-                stock: 0,
-                isActive: true,
-                image: itemEntry.row.image || "",
-                warehouseStocks: [{
-                  warehouse: targetWarehouse,
-                  openingStock: 0,
-                  openingStockValue: 0,
-                  stockOnHand: 0,
-                  committedStock: 0,
-                  availableForSale: 0,
-                  physicalOpeningStock: 0,
-                  physicalStockOnHand: 0,
-                  physicalCommittedStock: 0,
-                  physicalAvailableForSale: 0,
-                }],
-              };
-              currentGroupItems.push(newItem);
+              console.warn("Could not update item group on bill save:", await updateRes.text().catch(() => ""));
             }
+          } catch (err) {
+            console.error("Error updating group items in bill save:", err);
           }
-
-          // Save the full updated item group once
-          const updateRes = await fetch(`${API_URL}/api/shoe-sales/item-groups/${groupId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              items: currentGroupItems,
-            }),
-          });
-
-          if (updateRes.ok) {
-            savedGroup = await updateRes.json();
-          } else {
-            console.warn("Could not update item group on bill save:", await updateRes.text().catch(() => ""));
-          }
-        } catch (err) {
-          console.error("Error updating group items in bill save:", err);
         }
 
         // Generate bill line items unconditionally so bill items are always saved
@@ -3575,66 +3577,68 @@ ${storeNameZpl}^FO81,21
         const { row, totalPieceCount, finalItemName, rowCost, rowSelling, rowSku, rowItemCode, rowHsn, rowSize } = itemEntry;
         let itemId = (itemEntry.pieceIndex === 0 ? (row.itemId || row.itemData?._id) : null) || null;
 
-        try {
-          if (itemId) {
-            // Update existing standalone item
-            await fetch(`${API_URL}/api/shoe-sales/items/${itemId}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                itemName: finalItemName,
-                sku: rowSku,
-                itemCode: rowItemCode,
-                hsnCode: rowHsn,
-                size: rowSize,
-                costPrice: rowCost,
-                sellingPrice: rowSelling,
-                mrp: parseFloat(row.mrp) || rowSelling || 0,
-                returnable: row.returnable !== undefined ? Boolean(row.returnable) : false,
-                taxRateIntra: row.tax || "",
-                image: row.image || "",
-              }),
-            });
-          } else {
-            const createItemRes = await fetch(`${API_URL}/api/shoe-sales/items`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                itemName: finalItemName,
-                sku: rowSku,
-                itemCode: rowItemCode,
-                hsnCode: rowHsn,
-                size: rowSize,
-                costPrice: rowCost,
-                sellingPrice: rowSelling,
-                mrp: parseFloat(row.mrp) || rowSelling || 0,
-                returnable: row.returnable !== undefined ? Boolean(row.returnable) : false,
-                unit: "PCS",
-                taxRateIntra: row.tax || "",
-                trackInventory: true,
-                image: row.image || "",
-                images: row.image ? [{ filename: "item-image.jpg", contentType: "image/jpeg", data: row.image }] : [],
-                warehouseStocks: [{
-                  warehouse: targetWarehouse,
-                  openingStock: 0,
-                  openingStockValue: 0,
-                  stockOnHand: 0,
-                  committedStock: 0,
-                  availableForSale: 0,
-                  physicalOpeningStock: 0,
-                  physicalStockOnHand: 0,
-                  physicalCommittedStock: 0,
-                  physicalAvailableForSale: 0,
-                }],
-              }),
-            });
-            if (createItemRes.ok) {
-              const standaloneItem = await createItemRes.json();
-              itemId = standaloneItem._id || standaloneItem.id;
+        if (status !== "draft") {
+          try {
+            if (itemId) {
+              // Update existing standalone item
+              await fetch(`${API_URL}/api/shoe-sales/items/${itemId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  itemName: finalItemName,
+                  sku: rowSku,
+                  itemCode: rowItemCode,
+                  hsnCode: rowHsn,
+                  size: rowSize,
+                  costPrice: rowCost,
+                  sellingPrice: rowSelling,
+                  mrp: parseFloat(row.mrp) || rowSelling || 0,
+                  returnable: row.returnable !== undefined ? Boolean(row.returnable) : false,
+                  taxRateIntra: row.tax || "",
+                  image: row.image || "",
+                }),
+              });
+            } else {
+              const createItemRes = await fetch(`${API_URL}/api/shoe-sales/items`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  itemName: finalItemName,
+                  sku: rowSku,
+                  itemCode: rowItemCode,
+                  hsnCode: rowHsn,
+                  size: rowSize,
+                  costPrice: rowCost,
+                  sellingPrice: rowSelling,
+                  mrp: parseFloat(row.mrp) || rowSelling || 0,
+                  returnable: row.returnable !== undefined ? Boolean(row.returnable) : false,
+                  unit: "PCS",
+                  taxRateIntra: row.tax || "",
+                  trackInventory: true,
+                  image: row.image || "",
+                  images: row.image ? [{ filename: "item-image.jpg", contentType: "image/jpeg", data: row.image }] : [],
+                  warehouseStocks: [{
+                    warehouse: targetWarehouse,
+                    openingStock: 0,
+                    openingStockValue: 0,
+                    stockOnHand: 0,
+                    committedStock: 0,
+                    availableForSale: 0,
+                    physicalOpeningStock: 0,
+                    physicalStockOnHand: 0,
+                    physicalCommittedStock: 0,
+                    physicalAvailableForSale: 0,
+                  }],
+                }),
+              });
+              if (createItemRes.ok) {
+                const standaloneItem = await createItemRes.json();
+                itemId = standaloneItem._id || standaloneItem.id;
+              }
             }
+          } catch (err) {
+            console.warn("Could not sync standalone item on bill save:", err);
           }
-        } catch (err) {
-          console.warn("Could not sync standalone item on bill save:", err);
         }
 
         const divisor = totalPieceCount || 1;
