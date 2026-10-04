@@ -120,7 +120,16 @@ const Login = () => {
           // Ignore
         }
 
-        localStorage.setItem("rootfinuser", JSON.stringify(data.user));
+        let userObj = { ...data.user };
+        if (userObj.power === 'admin') {
+          if (!['858', '718'].includes(String(userObj.locCode))) {
+            userObj.locCode = '858';
+            userObj.username = 'Warehouse';
+            userObj.storeName = 'Warehouse';
+          }
+        }
+
+        localStorage.setItem("rootfinuser", JSON.stringify(userObj));
         setSuccessMessage('Login successful! Redirecting to workspace...');
 
         setTimeout(() => {

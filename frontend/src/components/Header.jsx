@@ -44,6 +44,19 @@ const Header = (prop) => {
     const getInitialUser = () => {
         try {
             const storedUser = JSON.parse(localStorage.getItem("rootfinuser"));
+            if (!storedUser) return {};
+            if (storedUser.power === 'admin') {
+                const isValid = fallbackLocations.some(loc => loc.locCode === storedUser.locCode);
+                if (!isValid) {
+                    const updated = {
+                        ...storedUser,
+                        locCode: fallbackLocations[0].locCode,
+                        username: fallbackLocations[0].locName
+                    };
+                    localStorage.setItem("rootfinuser", JSON.stringify(updated));
+                    return updated;
+                }
+            }
             return storedUser || {};
         } catch (error) {
             return {};
@@ -56,9 +69,30 @@ const Header = (prop) => {
         try {
             const storedUser = JSON.parse(localStorage.getItem("rootfinuser"));
             if (storedUser) {
-                const locationName = locations.find(loc => loc.locCode === storedUser.locCode)?.locName || storedUser.username;
-                setCurrentUser({ ...storedUser, username: locationName });
-                setSelectedValue(storedUser.locCode);
+                const matchedLoc = locations.find(loc => loc.locCode === storedUser.locCode);
+                if (matchedLoc) {
+                    if (storedUser.username !== matchedLoc.locName) {
+                        const updatedUser = { ...storedUser, username: matchedLoc.locName };
+                        localStorage.setItem("rootfinuser", JSON.stringify(updatedUser));
+                        setCurrentUser(updatedUser);
+                    } else {
+                        setCurrentUser(storedUser);
+                    }
+                    setSelectedValue(matchedLoc.locCode);
+                } else if (storedUser.power === 'admin' && locations.length > 0) {
+                    const defaultLoc = locations.find(loc => loc.locCode === "858") || locations[0];
+                    const updatedUser = {
+                        ...storedUser,
+                        locCode: defaultLoc.locCode,
+                        username: defaultLoc.locName
+                    };
+                    localStorage.setItem("rootfinuser", JSON.stringify(updatedUser));
+                    setCurrentUser(updatedUser);
+                    setSelectedValue(defaultLoc.locCode);
+                } else {
+                    setCurrentUser(storedUser);
+                    setSelectedValue(storedUser.locCode || "");
+                }
             }
         } catch (error) {
             console.error("Error syncing user from storage:", error);
