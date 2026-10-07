@@ -1225,52 +1225,68 @@ export const getBillById = async (req, res) => {
     const billObj = bill.toObject();
     let hasUpdates = false;
 
-    if (billObj.items && Array.isArray(billObj.items)) {
+    if (billObj.items && Array.isArray(billObj.items) && billObj.items.length > 0) {
+      // Collect unique itemGroupIds and itemIds for fast BATCH fetching (avoid N queries in a loop)
+      const groupIds = [...new Set(
+        billObj.items
+          .map(item => item.itemGroupId?.toString())
+          .filter(gId => gId && mongoose.Types.ObjectId.isValid(gId))
+      )];
+
+      const itemIds = [...new Set(
+        billObj.items
+          .map(item => item.itemId?.toString())
+          .filter(itId => itId && itId !== "null" && mongoose.Types.ObjectId.isValid(itId))
+      )];
+
+      const [groups, standaloneItems] = await Promise.all([
+        groupIds.length > 0 ? ItemGroup.find({ _id: { $in: groupIds } }).lean() : [],
+        itemIds.length > 0 ? ShoeItem.find({ _id: { $in: itemIds } }).lean() : [],
+      ]);
+
+      const groupMap = new Map(groups.map(g => [g._id.toString(), g]));
+      const itemMap = new Map(standaloneItems.map(it => [it._id.toString(), it]));
+
       for (let i = 0; i < billObj.items.length; i++) {
         const item = billObj.items[i];
         const itemId = item.itemId?.toString();
         const itemGroupId = item.itemGroupId?.toString();
         let targetSku = item.sku || item.itemSku || "";
-
         let resolved = false;
 
-        try {
-          // 1. Check group items first if itemGroupId is set
-          if (itemGroupId && mongoose.Types.ObjectId.isValid(itemGroupId)) {
-            const group = await ItemGroup.findById(itemGroupId);
-            if (group && Array.isArray(group.items)) {
-              const found = group.items.find(gi => 
-                (itemId && (gi._id?.toString() === itemId || gi.id?.toString() === itemId)) ||
-                (targetSku && gi.sku && gi.sku.trim().toLowerCase() === targetSku.trim().toLowerCase())
-              );
-              if (found) {
-                if (found.sku) targetSku = found.sku;
-                if (found.name && !billObj.items[i].itemName) billObj.items[i].itemName = found.name;
-                if (found.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = found.hsnCode;
-                if (found.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = found.itemCode;
-                if (found.returnable !== undefined && found.returnable !== null && billObj.items[i].returnable === undefined) {
-                  billObj.items[i].returnable = found.returnable;
-                }
-                resolved = true;
+        // 1. Fast in-memory lookup for group item
+        if (itemGroupId && groupMap.has(itemGroupId)) {
+          const group = groupMap.get(itemGroupId);
+          if (group && Array.isArray(group.items)) {
+            const found = group.items.find(gi => 
+              (itemId && (gi._id?.toString() === itemId || gi.id?.toString() === itemId)) ||
+              (targetSku && gi.sku && gi.sku.trim().toLowerCase() === targetSku.trim().toLowerCase())
+            );
+            if (found) {
+              if (found.sku) targetSku = found.sku;
+              if (found.name && !billObj.items[i].itemName) billObj.items[i].itemName = found.name;
+              if (found.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = found.hsnCode;
+              if (found.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = found.itemCode;
+              if (found.returnable !== undefined && found.returnable !== null && billObj.items[i].returnable === undefined) {
+                billObj.items[i].returnable = found.returnable;
               }
+              resolved = true;
             }
           }
+        }
 
-          // 2. Check standalone ShoeItem
-          if (!resolved && itemId && itemId !== "null" && mongoose.Types.ObjectId.isValid(itemId)) {
-            const shoeItem = await ShoeItem.findById(itemId);
-            if (shoeItem) {
-              if (shoeItem.sku) targetSku = shoeItem.sku;
-              if (shoeItem.itemName && !billObj.items[i].itemName) billObj.items[i].itemName = shoeItem.itemName;
-              if (shoeItem.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = shoeItem.hsnCode;
-              if (shoeItem.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = shoeItem.itemCode;
-              if (shoeItem.returnable !== undefined && billObj.items[i].returnable === undefined) {
-                billObj.items[i].returnable = shoeItem.returnable;
-              }
+        // 2. Fast in-memory lookup for standalone item
+        if (!resolved && itemId && itemMap.has(itemId)) {
+          const shoeItem = itemMap.get(itemId);
+          if (shoeItem) {
+            if (shoeItem.sku) targetSku = shoeItem.sku;
+            if (shoeItem.itemName && !billObj.items[i].itemName) billObj.items[i].itemName = shoeItem.itemName;
+            if (shoeItem.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = shoeItem.hsnCode;
+            if (shoeItem.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = shoeItem.itemCode;
+            if (shoeItem.returnable !== undefined && billObj.items[i].returnable === undefined) {
+              billObj.items[i].returnable = shoeItem.returnable;
             }
           }
-        } catch (skuErr) {
-          console.warn("Error resolving SKU in getBillById:", skuErr.message);
         }
 
         if (targetSku) {
@@ -1288,7 +1304,7 @@ export const getBillById = async (req, res) => {
     }
 
     if (hasUpdates) {
-      await bill.save().catch(err => console.warn("Could not sync bill SKUs in getBillById:", err));
+      bill.save().catch(err => console.warn("Could not sync bill SKUs in getBillById:", err));
     }
     
     res.status(200).json(billObj);
