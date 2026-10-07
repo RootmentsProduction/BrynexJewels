@@ -1211,6 +1211,11 @@ export const getBills = async (req, res) => {
 export const getBillById = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: "Invalid Bill ID format" });
+    }
+
     const bill = await Bill.findById(id);
     
     if (!bill) {
@@ -1229,39 +1234,43 @@ export const getBillById = async (req, res) => {
 
         let resolved = false;
 
-        // 1. Check group items first if itemGroupId is set
-        if (itemGroupId) {
-          const group = await ItemGroup.findById(itemGroupId);
-          if (group && Array.isArray(group.items)) {
-            const found = group.items.find(gi => 
-              (itemId && (gi._id?.toString() === itemId || gi.id?.toString() === itemId)) ||
-              (targetSku && gi.sku && gi.sku.trim().toLowerCase() === targetSku.trim().toLowerCase())
-            );
-            if (found) {
-              if (found.sku) targetSku = found.sku;
-              if (found.name && !billObj.items[i].itemName) billObj.items[i].itemName = found.name;
-              if (found.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = found.hsnCode;
-              if (found.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = found.itemCode;
-              if (found.returnable !== undefined && found.returnable !== null && billObj.items[i].returnable === undefined) {
-                billObj.items[i].returnable = found.returnable;
+        try {
+          // 1. Check group items first if itemGroupId is set
+          if (itemGroupId && mongoose.Types.ObjectId.isValid(itemGroupId)) {
+            const group = await ItemGroup.findById(itemGroupId);
+            if (group && Array.isArray(group.items)) {
+              const found = group.items.find(gi => 
+                (itemId && (gi._id?.toString() === itemId || gi.id?.toString() === itemId)) ||
+                (targetSku && gi.sku && gi.sku.trim().toLowerCase() === targetSku.trim().toLowerCase())
+              );
+              if (found) {
+                if (found.sku) targetSku = found.sku;
+                if (found.name && !billObj.items[i].itemName) billObj.items[i].itemName = found.name;
+                if (found.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = found.hsnCode;
+                if (found.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = found.itemCode;
+                if (found.returnable !== undefined && found.returnable !== null && billObj.items[i].returnable === undefined) {
+                  billObj.items[i].returnable = found.returnable;
+                }
+                resolved = true;
               }
-              resolved = true;
             }
           }
-        }
 
-        // 2. Check standalone ShoeItem
-        if (!resolved && itemId && itemId !== "null" && mongoose.Types.ObjectId.isValid(itemId)) {
-          const shoeItem = await ShoeItem.findById(itemId);
-          if (shoeItem) {
-            if (shoeItem.sku) targetSku = shoeItem.sku;
-            if (shoeItem.itemName && !billObj.items[i].itemName) billObj.items[i].itemName = shoeItem.itemName;
-            if (shoeItem.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = shoeItem.hsnCode;
-            if (shoeItem.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = shoeItem.itemCode;
-            if (shoeItem.returnable !== undefined && billObj.items[i].returnable === undefined) {
-              billObj.items[i].returnable = shoeItem.returnable;
+          // 2. Check standalone ShoeItem
+          if (!resolved && itemId && itemId !== "null" && mongoose.Types.ObjectId.isValid(itemId)) {
+            const shoeItem = await ShoeItem.findById(itemId);
+            if (shoeItem) {
+              if (shoeItem.sku) targetSku = shoeItem.sku;
+              if (shoeItem.itemName && !billObj.items[i].itemName) billObj.items[i].itemName = shoeItem.itemName;
+              if (shoeItem.hsnCode && !billObj.items[i].hsnCode) billObj.items[i].hsnCode = shoeItem.hsnCode;
+              if (shoeItem.itemCode && !billObj.items[i].itemCode) billObj.items[i].itemCode = shoeItem.itemCode;
+              if (shoeItem.returnable !== undefined && billObj.items[i].returnable === undefined) {
+                billObj.items[i].returnable = shoeItem.returnable;
+              }
             }
           }
+        } catch (skuErr) {
+          console.warn("Error resolving SKU in getBillById:", skuErr.message);
         }
 
         if (targetSku) {
