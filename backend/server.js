@@ -58,7 +58,9 @@ const allowedOrigins = [
   "https://rootfin-production.vercel.app",
   "https://rootfinjewels.brynex.com",
   "https://rootfin-brynex-testenv.vercel.app",
-  "https://brynex-jewels-bnwf.vercel.app"
+  "https://brynex-jewels-bnwf.vercel.app",
+  "https://3.26.27.90",
+  "http://3.26.27.90"
 ];
 
 const corsOptions = {
@@ -72,6 +74,7 @@ const corsOptions = {
       /\.onrender\.com$/.test(origin) ||
       /\.rootments\.live$/.test(origin) ||
       /\.brynex\.com$/.test(origin) ||
+      /^https?:\/\/3\.26\.27\.90(:\d+)?$/.test(origin) ||
       /^http:\/\/localhost(:\d+)?$/.test(origin) ||
       /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
     ) {
